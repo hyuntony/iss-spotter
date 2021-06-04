@@ -1,13 +1,26 @@
 const request = require("request");
 
-/**
- * Makes a single API request to retrieve the user's IP address.
- * Input:
- *   - A callback (to pass back an error or the IP string)
- * Returns (via Callback):
- *   - An error, if any (nullable)
- *   - The IP address as a string (null if error). Example: "162.245.144.188"
- */
+const nextISSTimesForMyLocation = function(callback) {
+  fetchMyIP((error, ip) => {
+    if (error) {
+      return callback(error, null);
+    }
+    fetchCoordsByIP(ip, (error, coordObj) => {
+      if (error) {
+        return callback(error, null);
+      }
+      fetchISSFlyOverTimes(coordObj, (error, passes) => {
+        if (error) {
+          return callback(error, null);
+        }
+        callback(error, passes);
+      });
+    });
+  });
+};
+
+
+
 const fetchMyIP = function(callback) {
   request('https://api.ipify.org?format=json', (error, response, body) => {
     if (error) {
@@ -23,6 +36,7 @@ const fetchMyIP = function(callback) {
     callback(null, data.ip);
   });
 };
+
 
 const fetchCoordsByIP = function(ip, callback) {
   request(`https://freegeoip.app/json/${ip}`, (error, response, body) => {
@@ -44,16 +58,7 @@ const fetchCoordsByIP = function(ip, callback) {
     callback(null, coordinates);
   });
 };
-/**
- * Makes a single API request to retrieve upcoming ISS fly over times the for the given lat/lng coordinates.
- * Input:
- *   - An object with keys `latitude` and `longitude`
- *   - A callback (to pass back an error or the array of resulting data)
- * Returns (via Callback):
- *   - An error, if any (nullable)
- *   - The fly over times as an array of objects (null if error). Example:
- *     [ { risetime: 134564234, duration: 600 }, ... ]
- */
+
 const fetchISSFlyOverTimes = function(coords, callback) {
   const url = `http://api.open-notify.org/iss-pass.json?lat=${coords.latitude}&lon=${coords.longitude}`;
 
@@ -72,4 +77,4 @@ const fetchISSFlyOverTimes = function(coords, callback) {
   });
 };
 
-module.exports = { fetchMyIP, fetchCoordsByIP, fetchISSFlyOverTimes };
+module.exports = { nextISSTimesForMyLocation };
